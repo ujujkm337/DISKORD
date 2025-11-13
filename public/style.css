@@ -1,22 +1,287 @@
-/* public/style.css (Добавьте в конец файла) */
+/* public/style.css (Переработанный стиль в духе Telegram) */
+
+/* --- ПЕРЕМЕННЫЕ (ЦВЕТОВАЯ СХЕМА TELEGRAM/DARK MODE) --- */
+:root {
+    --bg-dark: #1e2124;         /* Основной фон (почти черный) */
+    --bg-light: #282c30;        /* Фон боковой панели/полей ввода */
+    --primary-blue: #55a0ff;    /* Основной цвет (акцент Telegram) */
+    --text-color: #f1f1f1;      /* Светлый текст */
+    --secondary-text: #a0a0a0;  /* Серый текст (время, статус) */
+    --bubble-mine: #55a0ff;     /* Цвет моих сообщений */
+    --bubble-other: #3a3f44;    /* Цвет чужих сообщений */
+    --border-color: #374151;    /* Цвет разделителей */
+
+    /* Неоновые акценты (для вашего стиля) */
+    --neon-color: var(--primary-blue);
+    --neon-shadow: 0 0 5px var(--neon-color), 0 0 10px var(--neon-color);
+}
+
+/* --- ОБЩИЕ СТИЛИ --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-color);
+    line-height: 1.4;
+    height: 100vh;
+    overflow: hidden; /* Чтобы избежать прокрутки всего тела */
+}
+
+/* --- СТИЛИ КНОПОК И ПОЛЕЙ ВВОДА (NEON / TELEGRAM) --- */
+.neon-border {
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-light);
+    color: var(--text-color);
+    padding: 10px 15px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.neon-border:focus {
+    outline: none;
+    border-color: var(--neon-color);
+    box-shadow: 0 0 5px var(--neon-color);
+}
+
+button {
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    /* Неоновый акцент на кнопках */
+    box-shadow: var(--neon-shadow);
+}
+
+button:hover {
+    background-color: #4088e5; /* Чуть темнее */
+    box-shadow: var(--neon-shadow);
+}
+
+/* --- 1. СТИЛИ СТРАНИЦЫ ВХОДА (login.html) --- */
+.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: var(--bg-dark);
+}
+
+.login-box {
+    background-color: var(--bg-light);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.login-box h2 {
+    text-align: center;
+    color: var(--primary-blue);
+    margin-bottom: 10px;
+    font-weight: 800;
+}
+
+.login-box input {
+    width: 100%;
+    /* Используем уже существующий neon-border */
+}
+
+.login-box .buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.login-box .buttons button {
+    flex: 1;
+}
+
+#msg {
+    text-align: center;
+    color: var(--secondary-text);
+    font-size: 0.9rem;
+}
+
+/* --- 2. СТИЛИ ОСНОВНОГО ЧАТА (index.html) --- */
+#app {
+    display: flex;
+    height: 100vh;
+}
+
+/* --- Боковая панель (Сайдбар) --- */
+#sidebar {
+    width: 300px;
+    background-color: var(--bg-light);
+    border-right: 1px solid var(--border-color);
+    padding: 20px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#myName {
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--primary-blue);
+}
+
+#users {
+    list-style: none;
+    padding: 0;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+#users li {
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#users li:hover,
+#users li.active {
+    background-color: var(--border-color);
+}
+
+#users li .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #4caf50; /* Зеленый статус */
+}
+
+#allChatBtn {
+    margin-top: 10px;
+    width: 100%;
+    /* Использует стили обычной кнопки */
+}
+
+
+/* --- Область Чата --- */
+#chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-dark);
+}
+
+/* Шапка чата */
+#chatHeader {
+    padding: 15px 20px;
+    background-color: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Область сообщений */
+#messages {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* --- СТИЛИ ПУЗЫРЕЙ СООБЩЕНИЙ (Имитация Telegram) --- */
+.message {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    font-size: 0.95rem;
+    position: relative;
+}
+
+/* Сообщения других пользователей (слева) */
+.message:not(.mine) {
+    background-color: var(--bubble-other);
+    align-self: flex-start;
+    border-bottom-left-radius: 2px; /* Уголок, имитирующий Telegram */
+}
+
+/* Мои сообщения (справа) */
+.message.mine {
+    background-color: var(--bubble-mine);
+    color: white; /* Текст в синем фоне должен быть белым */
+    align-self: flex-end;
+    border-bottom-right-radius: 2px; /* Уголок, имитирующий Telegram */
+}
+
+.message strong {
+    font-weight: 600;
+    margin-right: 5px;
+    color: var(--secondary-text); /* Имя отправителя */
+}
+
+.message.mine strong {
+    color: white; /* Имя в синем фоне */
+}
+
+/* --- Область ввода сообщения --- */
+#inputArea {
+    display: flex;
+    padding: 15px 20px;
+    background-color: var(--bg-light);
+    border-top: 1px solid var(--border-color);
+}
+
+#msgInput {
+    flex-grow: 1;
+    margin-right: 10px;
+    /* Используем neon-border */
+}
+
+#sendBtn {
+    width: 50px;
+    padding: 0;
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 
 /* -------------------------------------- */
 /* ✅ Адаптивный дизайн (Мобильная версия) */
 /* -------------------------------------- */
-@media (max-width: 600px) {
+@media (max-width: 800px) {
     
     #app {
-        flex-direction: column; /* Изменяем расположение на вертикальное */
-        height: auto;
+        flex-direction: column;
+        height: 100vh;
     }
 
     #sidebar {
         width: 100%;
-        height: 80px; /* Фиксированная высота сайдбара на мобильных */
+        height: 80px; 
         border-right: none;
-        border-bottom: 1px solid #374151;
+        border-bottom: 1px solid var(--border-color);
         padding: 10px 15px;
-        flex-direction: row; /* Элементы в сайдбаре в ряд */
+        flex-direction: row; 
         justify-content: space-between;
         align-items: center;
     }
@@ -24,44 +289,26 @@
     #myName {
         font-size: 1.1rem;
         margin: 0;
+        border-bottom: none;
+        padding-bottom: 0;
     }
 
-    #users {
-        /* Прячем список пользователей по умолчанию */
+    #users, #allChatBtn {
+        /* Список пользователей и кнопку на мобильных нужно будет открывать по клику */
         display: none; 
     }
     
-    /* Делаем кнопку общего чата незаметной на мобильных, 
-       т.к. мы покажем ее только при необходимости */
-    #allChatBtn {
-        display: none;
-    }
-    
-    /* На мобильных чат занимает всю оставшуюся высоту */
     #chat {
         flex: 1;
-        min-height: calc(100vh - 80px); /* Высота экрана минус высота сайдбара */
+        min-height: calc(100vh - 80px); 
     }
-
-    #chatHeader {
-        font-size: 1rem;
-    }
-
-    #messages {
-        padding: 10px;
-    }
-
+    
     .message {
-        max-width: 85%; /* Больше места для сообщений */
-        font-size: 0.9rem;
+        max-width: 90%; /* Больше места для сообщений */
     }
 
-    #inputArea {
-        padding: 10px;
-    }
-
-    #msgInput {
-        padding: 10px;
-        font-size: 0.9rem;
+    .login-box {
+        margin: 20px;
+        padding: 25px;
     }
 }
