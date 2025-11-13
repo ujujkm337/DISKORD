@@ -35,12 +35,8 @@
         msg.textContent = "❌ Пароли не совпадают!";
         return;
       }
-      if (username.length < 3) {
-          msg.textContent = "❌ Имя пользователя должно быть не менее 3 символов.";
-          return;
-      }
-      if (password.length < 6) {
-          msg.textContent = "❌ Пароль должен быть не менее 6 символов.";
+      if (username.length < 3 || password.length < 6) {
+          msg.textContent = "❌ Имя (мин. 3 символа) и Пароль (мин. 6 символов) обязательны.";
           return;
       }
 

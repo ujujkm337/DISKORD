@@ -32,12 +32,11 @@ async function init() {
         return;
     }
 
-    // 3. Keep-Alive: Отправляем запрос каждые 14 минут (840000 мс)
-    // Это помогает бороться с засыпанием на бесплатных планах Render
+    // 3. Keep-Alive: Отправляем запрос каждые 14 минут
+    // Это помогает бороться с засыпанием на бесплатных планах хостинга
     setInterval(() => {
-        // Отправляем небольшой, легковесный запрос на маршрут /me
         fetch('/me').catch(e => console.log('Keep-alive failed, server sleeping?'));
-    }, 840000); // 14 минут
+    }, 840000); 
 }
 
 function setupChat(user) {
@@ -45,15 +44,11 @@ function setupChat(user) {
     appDiv.hidden = false;
 
     // 4. Подключаем WebSocket
-    // Адрес ws:// или wss:// должен быть абсолютным для хостинга
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     socket = new WebSocket(`${wsProtocol}//${window.location.host}`);
 
     socket.onopen = () => {
         console.log("WebSocket подключен.");
-        // Отправляем на сервер информацию о том, кто мы
-        // Сервер сам распознает нас по куки, но мы можем отправить приветствие.
-        socket.send(JSON.stringify({ type: 'hello', username: user.username }));
     };
 
     socket.onmessage = (event) => {
@@ -63,7 +58,6 @@ function setupChat(user) {
 
     socket.onclose = () => {
         console.log("WebSocket отключен. Попытка переподключения через 5 сек.");
-        // Можно добавить логику для переподключения
         setTimeout(init, 5000); 
     };
 
@@ -71,7 +65,7 @@ function setupChat(user) {
         console.error("WebSocket ошибка:", error);
     };
     
-    // Инициализация общего чата
+    // Инициализация общего чата по умолчанию
     currentChat = { type: 'general', id: 'all' };
     chatHeaderDiv.textContent = 'Общий чат';
 
@@ -84,35 +78,39 @@ function setupChat(user) {
             type: 'message',
             chatId: currentChat.id,
             chatType: currentChat.type,
-            sender: user.username,
+            // На клиенте отправляем только текст, сервер добавит отправителя
             text: text
         };
         
         socket.send(JSON.stringify(message));
         msgInput.value = '';
-        
-        // Опционально: показать сообщение сразу в своем чате
-        // displayMessage(message, true); 
     };
+
+    // Отправка по Enter
+    msgInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            sendBtn.click();
+        }
+    });
 }
 
 function handleNewMessage(message) {
-    // Здесь будет логика для отображения входящих сообщений
-    // Пока просто выводим в консоль
-    console.log("Новое сообщение:", message);
     if (message.type === 'message') {
-        displayMessage(message);
+        // Определяем, наше ли это сообщение
+        const isMine = message.sender === currentUser.username;
+        displayMessage(message, isMine);
     }
 }
 
+// ✅ Обновленная функция для использования новых CSS-классов
 function displayMessage(message, isMine = false) {
     const msgElement = document.createElement('div');
     msgElement.classList.add('message');
     if (isMine) {
-        msgElement.classList.add('mine');
+        // Добавляем класс 'mine' для синего фона и выравнивания вправо
+        msgElement.classList.add('mine'); 
     }
     
-    // Простая разметка сообщения
     msgElement.innerHTML = `<strong>${message.sender}:</strong> ${message.text}`;
     messagesDiv.appendChild(msgElement);
     

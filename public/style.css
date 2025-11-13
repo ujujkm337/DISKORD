@@ -1,4 +1,4 @@
-/* public/style.css (Переработанный стиль в духе Telegram) */
+/* public/style.css (Полный код: Стиль Telegram + Фикс мобильной панели) */
 
 /* --- ПЕРЕМЕННЫЕ (ЦВЕТОВАЯ СХЕМА TELEGRAM/DARK MODE) --- */
 :root {
@@ -11,7 +11,7 @@
     --bubble-other: #3a3f44;    /* Цвет чужих сообщений */
     --border-color: #374151;    /* Цвет разделителей */
 
-    /* Неоновые акценты (для вашего стиля) */
+    /* Неоновые акценты */
     --neon-color: var(--primary-blue);
     --neon-shadow: 0 0 5px var(--neon-color), 0 0 10px var(--neon-color);
 }
@@ -29,7 +29,7 @@ body {
     color: var(--text-color);
     line-height: 1.4;
     height: 100vh;
-    overflow: hidden; /* Чтобы избежать прокрутки всего тела */
+    overflow: hidden; 
 }
 
 /* --- СТИЛИ КНОПОК И ПОЛЕЙ ВВОДА (NEON / TELEGRAM) --- */
@@ -40,6 +40,7 @@ body {
     padding: 10px 15px;
     border-radius: 8px;
     transition: all 0.2s;
+    font-size: 1rem;
 }
 
 .neon-border:focus {
@@ -57,12 +58,11 @@ button {
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s, box-shadow 0.2s;
-    /* Неоновый акцент на кнопках */
     box-shadow: var(--neon-shadow);
 }
 
 button:hover {
-    background-color: #4088e5; /* Чуть темнее */
+    background-color: #4088e5; 
     box-shadow: var(--neon-shadow);
 }
 
@@ -92,11 +92,6 @@ button:hover {
     color: var(--primary-blue);
     margin-bottom: 10px;
     font-weight: 800;
-}
-
-.login-box input {
-    width: 100%;
-    /* Используем уже существующий neon-border */
 }
 
 .login-box .buttons {
@@ -162,17 +157,9 @@ button:hover {
     background-color: var(--border-color);
 }
 
-#users li .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: #4caf50; /* Зеленый статус */
-}
-
 #allChatBtn {
     margin-top: 10px;
     width: 100%;
-    /* Использует стили обычной кнопки */
 }
 
 
@@ -182,6 +169,8 @@ button:hover {
     display: flex;
     flex-direction: column;
     background-color: var(--bg-dark);
+    /* ✅ ИЗМЕНЕНИЕ: Отступ снизу для мобильного фикса */
+    padding-bottom: 70px; /* Достаточно места для #inputArea на desktop */
 }
 
 /* Шапка чата */
@@ -220,25 +209,25 @@ button:hover {
 .message:not(.mine) {
     background-color: var(--bubble-other);
     align-self: flex-start;
-    border-bottom-left-radius: 2px; /* Уголок, имитирующий Telegram */
+    border-bottom-left-radius: 2px; 
 }
 
 /* Мои сообщения (справа) */
 .message.mine {
     background-color: var(--bubble-mine);
-    color: white; /* Текст в синем фоне должен быть белым */
+    color: white; 
     align-self: flex-end;
-    border-bottom-right-radius: 2px; /* Уголок, имитирующий Telegram */
+    border-bottom-right-radius: 2px; 
 }
 
 .message strong {
     font-weight: 600;
     margin-right: 5px;
-    color: var(--secondary-text); /* Имя отправителя */
+    color: var(--secondary-text); 
 }
 
 .message.mine strong {
-    color: white; /* Имя в синем фоне */
+    color: white; 
 }
 
 /* --- Область ввода сообщения --- */
@@ -247,12 +236,16 @@ button:hover {
     padding: 15px 20px;
     background-color: var(--bg-light);
     border-top: 1px solid var(--border-color);
+    /* ✅ ИЗМЕНЕНИЕ: Для desktop просто относительно чата */
+    position: absolute;
+    bottom: 0;
+    width: calc(100% - 300px); /* 100% минус ширина сайдбара */
+    left: 300px;
 }
 
 #msgInput {
     flex-grow: 1;
     margin-right: 10px;
-    /* Используем neon-border */
 }
 
 #sendBtn {
@@ -263,7 +256,6 @@ button:hover {
     justify-content: center;
     align-items: center;
 }
-
 
 /* -------------------------------------- */
 /* ✅ Адаптивный дизайн (Мобильная версия) */
@@ -277,7 +269,7 @@ button:hover {
 
     #sidebar {
         width: 100%;
-        height: 80px; 
+        height: 60px; /* Чуть меньше на мобильных */
         border-right: none;
         border-bottom: 1px solid var(--border-color);
         padding: 10px 15px;
@@ -294,17 +286,35 @@ button:hover {
     }
 
     #users, #allChatBtn {
-        /* Список пользователей и кнопку на мобильных нужно будет открывать по клику */
         display: none; 
     }
     
+    /* ✅ ИЗМЕНЕНИЕ: Фиксируем область чата, чтобы она не перекрывалась системными элементами */
     #chat {
         flex: 1;
-        min-height: calc(100vh - 80px); 
+        min-height: calc(100vh - 60px); 
+        padding-bottom: 0; /* Убираем отступ с desktop */
     }
     
     .message {
-        max-width: 90%; /* Больше места для сообщений */
+        max-width: 90%; 
+    }
+
+    /* ✅ ИЗМЕНЕНИЕ: Фикс панели ввода на мобильных */
+    #inputArea {
+        position: fixed; 
+        bottom: 0;
+        width: 100%;
+        left: 0;
+        /* Добавляем безопасный отступ, чтобы кнопка не закрывалась навигационной панелью */
+        padding-bottom: calc(15px + env(safe-area-inset-bottom)); 
+        padding-top: 15px;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* ✅ ИЗМЕНЕНИЕ: Добавляем отступ в сообщениях, чтобы они не пропадали под фиксированной панелью ввода */
+    #messages {
+        padding-bottom: 120px; /* Достаточно места для фиксированной панели ввода */
     }
 
     .login-box {
