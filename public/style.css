@@ -1,239 +1,67 @@
-body {
-  margin: 0;
-  /* Используем современный шрифт */
-  font-family: 'Inter', sans-serif; 
-  background: #111827; /* Темный фон */
-  color: #f3f4f6; /* Светлый текст */
-}
+/* public/style.css (Добавьте в конец файла) */
 
-/* Общий неоновый эффект (на кнопки, инпуты) */
-.neon-border {
-  border: 1px solid #10b981; /* Неоново-зеленый */
-  box-shadow: 0 0 5px #10b981, 0 0 10px #10b98155;
-  transition: all 0.3s ease-in-out;
-}
-.neon-border:focus, .neon-border:hover {
-  border-color: #3b82f6; /* Неоново-синий при фокусе */
-  box-shadow: 0 0 8px #3b82f6, 0 0 16px #3b82f655;
-}
+/* -------------------------------------- */
+/* ✅ Адаптивный дизайн (Мобильная версия) */
+/* -------------------------------------- */
+@media (max-width: 600px) {
+    
+    #app {
+        flex-direction: column; /* Изменяем расположение на вертикальное */
+        height: auto;
+    }
 
-/* Login Page */
-.login-page {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-.login-box {
-  background: #1f2937; /* Темный фон бокса */
-  padding: 40px;
-  border-radius: 12px;
-  /* Добавляем эффект парения */
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 20px #10b98150; 
-  text-align: center;
-  width: 320px;
-  animation: fadeIn 0.8s ease-out;
-}
-.login-box h2 {
-    color: #f3f4f6;
-    margin-bottom: 20px;
-}
-.login-box input {
-  display: block;
-  width: 100%;
-  margin: 15px 0;
-  padding: 12px;
-  background: #374151; /* Фон инпута */
-  color: #f3f4f6;
-  border-radius: 6px;
-  border: none;
-}
-.login-box button {
-  margin: 10px;
-  padding: 10px 20px;
-  background: #10b981; 
-  color: #1f2937; 
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.3s, transform 0.1s;
-}
-.login-box button:hover {
-  background: #059669; 
-  transform: translateY(-2px);
-}
-#msg {
-    color: #fde047; /* Желтый для сообщений */
-    margin-top: 15px;
-}
+    #sidebar {
+        width: 100%;
+        height: 80px; /* Фиксированная высота сайдбара на мобильных */
+        border-right: none;
+        border-bottom: 1px solid #374151;
+        padding: 10px 15px;
+        flex-direction: row; /* Элементы в сайдбаре в ряд */
+        justify-content: space-between;
+        align-items: center;
+    }
 
-/* Messenger layout */
-#app {
-  display: flex;
-  height: 100vh;
-}
+    #myName {
+        font-size: 1.1rem;
+        margin: 0;
+    }
 
-#sidebar {
-  width: 300px;
-  background: #1f2937;
-  border-right: 1px solid #374151;
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-}
+    #users {
+        /* Прячем список пользователей по умолчанию */
+        display: none; 
+    }
+    
+    /* Делаем кнопку общего чата незаметной на мобильных, 
+       т.к. мы покажем ее только при необходимости */
+    #allChatBtn {
+        display: none;
+    }
+    
+    /* На мобильных чат занимает всю оставшуюся высоту */
+    #chat {
+        flex: 1;
+        min-height: calc(100vh - 80px); /* Высота экрана минус высота сайдбара */
+    }
 
-#sidebar h2 {
-  color: #3b82f6;
-  text-align: center;
-  margin-bottom: 15px;
-  text-shadow: 0 0 5px #3b82f650;
-}
+    #chatHeader {
+        font-size: 1rem;
+    }
 
-#users {
-  flex: 1;
-  list-style: none;
-  padding: 0;
-  overflow-y: auto;
-  border-top: 1px solid #374151;
-  padding-top: 10px;
-}
+    #messages {
+        padding: 10px;
+    }
 
-#users li, #allChatBtn {
-  padding: 10px;
-  margin-bottom: 5px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #9ca3af;
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-  font-weight: 500;
-  background: #374151;
-}
+    .message {
+        max-width: 85%; /* Больше места для сообщений */
+        font-size: 0.9rem;
+    }
 
-#users li:hover, #users li.active, #allChatBtn:hover, #allChatBtn.active {
-  background: #4b5563;
-  color: #10b981;
-  box-shadow: 0 0 5px #10b98150;
-}
+    #inputArea {
+        padding: 10px;
+    }
 
-#allChatBtn {
-    width: 100%;
-    margin-top: 10px;
-    border: none;
-}
-
-#chat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-#chatHeader {
-  background: #1f2937;
-  color: #10b981;
-  padding: 15px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border-bottom: 1px solid #374151;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-#callBtn {
-    padding: 5px 10px;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-#callBtn:hover {
-    background: #2563eb;
-}
-
-#messages {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-  background: #111827;
-}
-
-.message {
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 12px;
-  max-width: 70%;
-  position: relative;
-  word-wrap: break-word;
-  animation: slideIn 0.3s ease-out;
-}
-
-/* Сообщения других */
-.message {
-  background: #374151;
-  color: #f3f4f6;
-  align-self: flex-start;
-  margin-right: auto;
-}
-
-/* Ваши сообщения */
-.message.me {
-  background: #10b981; /* Неоново-зеленый фон */
-  color: #1f2937; /* Темный текст */
-  align-self: flex-end;
-  margin-left: auto;
-  box-shadow: 0 0 8px #10b98150;
-}
-
-#inputArea {
-  display: flex;
-  padding: 15px;
-  background: #1f2937;
-  border-top: 1px solid #374151;
-}
-
-#msgInput {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 20px;
-  background: #374151;
-  color: #f3f4f6;
-  margin-right: 10px;
-}
-#msgInput:focus {
-    outline: none;
-}
-
-#sendBtn {
-  background: #3b82f6; 
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  font-size: 1.2rem;
-  transition: background 0.3s, transform 0.1s;
-}
-#sendBtn:hover {
-  background: #2563eb;
-  transform: scale(1.05);
-}
-
-/* Анимации */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideIn {
-    from { opacity: 0; transform: translateX(20px); }
-    .message { transform: translateX(0); }
-    .message.me { transform: translateX(0); }
-    .message.me { from { opacity: 0; transform: translateX(-20px); } }
+    #msgInput {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
 }
