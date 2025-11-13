@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Discord</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="auth">
+  <h1>Mini Discord</h1>
+  <div id="registerBox">
+    <input id="regUser" placeholder="Имя пользователя">
+    <input id="regPass" type="password" placeholder="Пароль">
+    <button id="registerBtn">Регистрация</button>
+  </div>
+  <div id="loginBox">
+    <input id="logUser" placeholder="Имя пользователя">
+    <input id="logPass" type="password" placeholder="Пароль">
+    <button id="loginBtn">Войти</button>
+  </div>
+  <p id="authMsg"></p>
+</div>
+
+<div id="chat" class="hidden">
+  <div id="sidebar">
+    <h3>Онлайн</h3>
+    <ul id="users"></ul>
+  </div>
+  <div id="main">
+    <div id="messages"></div>
+    <div id="input">
+      <input id="msg" placeholder="Сообщение...">
+      <button id="send">Отправить</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
+</body>
+</html>

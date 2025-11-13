@@ -1,0 +1,82 @@
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: #2f3136;
+  color: white;
+}
+
+.hidden { display: none; }
+
+#auth {
+  text-align: center;
+  margin-top: 100px;
+}
+
+#auth input {
+  display: block;
+  margin: 10px auto;
+  padding: 10px;
+  width: 200px;
+  border-radius: 5px;
+  border: none;
+}
+
+#auth button {
+  background: #5865F2;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+#auth button:hover { background: #4752C4; }
+
+#chat {
+  display: flex;
+  height: 100vh;
+}
+
+#sidebar {
+  width: 200px;
+  background: #202225;
+  padding: 10px;
+}
+
+#users {
+  list-style: none;
+  padding: 0;
+}
+
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+#input {
+  display: flex;
+  border-top: 1px solid #40444b;
+}
+
+#input input {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  outline: none;
+  background: #40444b;
+  color: white;
+}
+
+#input button {
+  background: #5865F2;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  cursor: pointer;
+}
