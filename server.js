@@ -14,7 +14,8 @@ const wss = new WebSocketServer({ server });
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.static("public"));
+// ✅ Настройка для папки public
+app.use(express.static("public")); 
 
 // === Инициализация базы данных ===
 const db = await open({
@@ -40,49 +41,69 @@ CREATE TABLE IF NOT EXISTS messages (
 
 let clients = {}; // {username: ws}
 
+function send(ws, obj) {
+  try {
+    ws.send(JSON.stringify(obj));
+  } catch (e) {
+    console.error("Error sending to WS:", e);
+  }
+}
+
+function broadcast(obj) {
+  Object.values(clients).forEach(ws => send(ws, obj));
+}
+
+
 // === Аутентификация ===
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password)
-    return res.status(400).json({ error: "Введите логин и пароль" });
-
+    return res.json({ error: "Необходимо ввести имя пользователя и пароль" });
   try {
+    // ВАЖНО: В реальном приложении пароль нужно хешировать!
     await db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, password]);
-    res.json({ ok: true });
-  } catch {
-    res.status(400).json({ error: "Пользователь уже существует" });
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ error: "Пользователь с таким именем уже существует" });
   }
 });
 
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   const user = await db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password]);
-  if (!user) return res.status(401).json({ error: "Неверные данные" });
 
-  res.cookie("user", username, { httpOnly: false });
-  res.json({ ok: true });
+  if (user) {
+    res.cookie("user", encodeURIComponent(username), { maxAge: 900000, httpOnly: true });
+    res.json({ success: true, user: user.username });
+  } else {
+    res.json({ success: false, error: "Неверное имя пользователя или пароль" });
+  }
 });
 
 app.get("/me", (req, res) => {
-  if (req.cookies.user) res.json({ user: req.cookies.user });
-  else res.status(401).end();
+  const user = req.cookies.user;
+  if (user) res.json({ user: user });
+  else res.status(401).json({ error: "Unauthorized" });
 });
 
-// === История сообщений ===
+// === Маршрут для загрузки сообщений с поддержкой lastId ===
 app.get("/messages", async (req, res) => {
-  const { user, withUser } = req.query;
-  if (!user) return res.status(400).end();
+  const { user, withUser, lastId } = req.query;
+  let rows = [];
+  const lastIdNum = parseInt(lastId) || 0; // Начинаем с ID 0, если не передан
 
-  let rows;
   if (withUser === "all") {
-    rows = await db.all("SELECT * FROM messages WHERE receiver = 'all' ORDER BY id ASC");
+    rows = await db.all(`
+      SELECT id, sender, text, timestamp FROM messages 
+      WHERE receiver = 'all' AND id > ?
+      ORDER BY id ASC
+    `, [lastIdNum]);
   } else {
     rows = await db.all(`
-      SELECT * FROM messages 
-      WHERE (sender = ? AND receiver = ?)
-         OR (sender = ? AND receiver = ?)
+      SELECT id, sender, receiver, text, timestamp FROM messages 
+      WHERE ((sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?)) AND id > ?
       ORDER BY id ASC
-    `, [user, withUser, withUser, user]);
+    `, [user, withUser, withUser, user, lastIdNum]);
   }
   res.json(rows);
 });
@@ -107,14 +128,18 @@ wss.on("connection", async (ws, req) => {
     if (data.type === "message") {
       const { text, to } = data;
 
-      // сохраняем в БД
-      await db.run("INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)", [username, to, text]);
+      // сохраняем в БД и получаем ID сообщения
+      const result = await db.run("INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)", [username, to, text]);
+      const messageId = result.lastID; // Получаем ID последнего вставленного сообщения
 
-      const messageObj = { type: "message", from: username, text, to };
+      const messageObj = { type: "message", id: messageId, from: username, text, to }; 
+      
       if (to === "all") broadcast(messageObj);
       else {
+        // Отправляем получателю
         if (clients[to]) send(clients[to], messageObj);
-        send(ws, messageObj);
+        // Отправляем обратно отправителю (важное исправление для работы на ПК/iPhone!)
+        send(ws, messageObj); 
       }
     }
   });
@@ -125,12 +150,6 @@ wss.on("connection", async (ws, req) => {
   });
 });
 
-function send(ws, msg) {
-  if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
-}
-function broadcast(msg) {
-  for (const u in clients) send(clients[u], msg);
-}
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("✅ Server running on port " + PORT));
+server.listen(3000, () => {
+  console.log("Сервер запущен на порту 3000");
+});
