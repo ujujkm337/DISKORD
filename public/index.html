@@ -1,47 +1,27 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>Чат-клон Discord/Telegram</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messenger</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div id="auth">
-    <h2>Вход / Регистрация</h2>
-    <input type="text" id="username" placeholder="Имя пользователя">
-    <input type="password" id="password" placeholder="Пароль">
-    <button id="login-btn">Войти</button>
-    <button id="register-btn">Зарегистрироваться</button>
-    <p id="login-msg"></p>
-</div>
-
-<div id="chat-container" style="display:none;">
-    <div id="sidebar">
-        <h3>Онлайн</h3>
-        <div id="private-chats-list"></div>
-        <button id="create-group-btn">Создать группу</button>
-        <h3>Группы</h3>
-        <div id="groups-list"></div>
-    </div>
-    <div id="chat-window">
-        <div id="messages"></div>
-        <input type="text" id="message-input" placeholder="Написать сообщение...">
-        <button id="send-btn">Отправить</button>
-    </div>
-</div>
-
-<!-- Модальное окно создания группы -->
-<div id="create-group-modal" class="modal" style="display:none;">
-  <div class="modal-content">
-    <span class="close-btn">&times;</span>
-    <h3>Создать группу</h3>
-    <input type="text" id="group-name" placeholder="Название группы">
-    <div id="members-list"></div>
-    <button id="create-group-confirm">Создать</button>
+  <div id="app" hidden>
+    <aside id="sidebar">
+      <h2 id="myName">...</h2>
+      <ul id="users"></ul>
+      <button id="allChatBtn">Общий чат</button>
+    </aside>
+    <main id="chat">
+      <header id="chatHeader">Общий чат</header>
+      <div id="messages"></div>
+      <div id="inputArea">
+        <input id="msgInput" placeholder="Введите сообщение..." />
+        <button id="sendBtn">➤</button>
+      </div>
+    </main>
   </div>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script src="client.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

@@ -1,15 +1,100 @@
-body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f2f2f2;}
-#auth, #chat-container { padding:20px;}
-input, button { font-size:16px; margin:5px 0; padding:8px;}
-button { background:#007bff; color:#fff; border:none; border-radius:8px; cursor:pointer; transition:0.2s;}
-button:hover { background:#0056b3; }
-#chat-container { display:flex; height:90vh;}
-#sidebar { width:200px; background:#fff; padding:10px; border-right:1px solid #ccc; overflow-y:auto;}
-#chat-window { flex:1; display:flex; flex-direction:column; background:#e9ecef;}
-#messages { flex:1; padding:10px; overflow-y:auto;}
-#message-input { width:80%; }
-#send-btn { width:18%; }
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  display: flex;
+  height: 100vh;
+  background: #f2f3f5;
+  color: #222;
+}
 
-.modal { position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);}
-.modal-content { background:#fff; margin:10% auto; padding:20px; border-radius:10px; width:300px;}
-.close-btn { float:right; cursor:pointer; font-size:20px;}
+#app {
+  display: flex;
+  width: 100%;
+}
+
+#sidebar {
+  width: 260px;
+  background: #ffffff;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+
+#sidebar h2 {
+  margin: 0 0 10px;
+  text-align: center;
+}
+
+#users {
+  flex: 1;
+  list-style: none;
+  padding: 0;
+  overflow-y: auto;
+}
+
+#users li {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#users li:hover, #users li.active {
+  background: #e3f2fd;
+}
+
+#chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#chatHeader {
+  background: #0088cc;
+  color: white;
+  padding: 12px;
+  font-weight: bold;
+}
+
+#messages {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.message {
+  margin: 5px 0;
+  padding: 8px 12px;
+  background: #e1f5fe;
+  border-radius: 10px;
+  max-width: 60%;
+}
+
+.message.me {
+  background: #dcf8c6;
+  align-self: flex-end;
+}
+
+#inputArea {
+  display: flex;
+  padding: 10px;
+  background: #fafafa;
+  border-top: 1px solid #ddd;
+}
+
+#msgInput {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+#sendBtn {
+  background: #0088cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  margin-left: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}

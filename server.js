@@ -1,85 +1,133 @@
-const express = require('express');
-const http = require('http');
-const fs = require('fs');
+import express from "express";
+import http from "http";
+import { WebSocketServer } from "ws";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import cookieParser from "cookie-parser";
+import { v4 as uuidv4 } from "uuid";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const server = http.createServer(app);
-const { Server } = require('socket.io');
-const io = new Server(server);
+const wss = new WebSocketServer({ server });
 
-app.use(express.static('public'));
 app.use(express.json());
+app.use(cookieParser());
+app.use(express.static("public"));
 
-let users = [];
-let privateChats = [];
-let groups = [];
-let onlineUsers = [];
-
-// Загружаем данные
-if(fs.existsSync('public/users.json')) users = JSON.parse(fs.readFileSync('public/users.json'));
-if(fs.existsSync('public/private_chats.json')) privateChats = JSON.parse(fs.readFileSync('public/private_chats.json'));
-if(fs.existsSync('public/groups.json')) groups = JSON.parse(fs.readFileSync('public/groups.json'));
-
-// REST API для регистрации
-app.post('/register', (req, res) => {
-    const { username, password } = req.body;
-    if(users.find(u => u.username === username)) return res.json({ success: false, message: 'Пользователь уже существует' });
-    const newUser = { id: Date.now(), username, password };
-    users.push(newUser);
-    fs.writeFileSync('public/users.json', JSON.stringify(users));
-    res.json({ success: true, user: newUser });
+const db = await open({
+  filename: path.join(__dirname, "db.sqlite"),
+  driver: sqlite3.Database
 });
 
-// REST API для входа
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username && u.password === password);
-    if(!user) return res.json({ success: false, message: 'Неверные данные' });
-    res.json({ success: true, user });
+// Создаём таблицы, если их нет
+await db.exec(`
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE,
+  password TEXT
+);
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sender TEXT,
+  receiver TEXT,
+  text TEXT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+`);
+
+let clients = {}; // {userId: ws}
+
+// === Аутентификация ===
+app.post("/register", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password)
+    return res.status(400).json({ error: "Введите логин и пароль" });
+
+  try {
+    await db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, password]);
+    res.json({ ok: true });
+  } catch {
+    res.status(400).json({ error: "Пользователь уже существует" });
+  }
 });
 
-// Socket.io
-io.on('connection', socket => {
-    console.log('User connected:', socket.id);
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  const user = await db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password]);
+  if (!user) return res.status(401).json({ error: "Неверные данные" });
 
-    socket.on('join', userId => {
-        socket.userId = userId;
-        if(!onlineUsers.includes(userId)) onlineUsers.push(userId);
-        socket.join(`user_${userId}`);
-        io.emit('online_users', onlineUsers);
-    });
-
-    socket.on('private_message', data => {
-        const chat = privateChats.find(c => c.users.sort().join(',') === data.users.sort().join(','));
-        if(chat) {
-            chat.messages.push({ from: data.from, text: data.text, time: Date.now() });
-        } else {
-            privateChats.push({ users: data.users, messages: [{ from: data.from, text: data.text, time: Date.now() }] });
-        }
-        fs.writeFileSync('public/private_chats.json', JSON.stringify(privateChats));
-        data.users.forEach(id => io.to(`user_${id}`).emit('private_message', data));
-    });
-
-    socket.on('create_group', data => {
-        const newGroup = { id: Date.now(), name: data.name, members: data.members, messages: [] };
-        groups.push(newGroup);
-        fs.writeFileSync('public/groups.json', JSON.stringify(groups));
-        data.members.forEach(id => io.to(`user_${id}`).emit('new_group', newGroup));
-    });
-
-    socket.on('group_message', data => {
-        const group = groups.find(g => g.id === data.groupId);
-        if(group) {
-            group.messages.push({ from: data.from, text: data.text, time: Date.now() });
-            fs.writeFileSync('public/groups.json', JSON.stringify(groups));
-            group.members.forEach(id => io.to(`user_${id}`).emit('group_message', data));
-        }
-    });
-
-    socket.on('disconnect', () => {
-        onlineUsers = onlineUsers.filter(id => id !== socket.userId);
-        io.emit('online_users', onlineUsers);
-        console.log('User disconnected:', socket.id);
-    });
+  res.cookie("user", username, { httpOnly: false });
+  res.json({ ok: true });
 });
 
-server.listen(3000, () => console.log('Server running on http://localhost:3000'));
+app.get("/me", (req, res) => {
+  if (req.cookies.user) res.json({ user: req.cookies.user });
+  else res.status(401).end();
+});
+
+app.get("/messages", async (req, res) => {
+  const { user, withUser } = req.query;
+  if (!user) return res.status(400).end();
+
+  let rows;
+  if (withUser === "all") {
+    rows = await db.all("SELECT * FROM messages WHERE receiver = 'all' ORDER BY id ASC");
+  } else {
+    rows = await db.all(`
+      SELECT * FROM messages 
+      WHERE (sender = ? AND receiver = ?)
+         OR (sender = ? AND receiver = ?)
+      ORDER BY id ASC
+    `, [user, withUser, withUser, user]);
+  }
+  res.json(rows);
+});
+
+// === WebSocket ===
+wss.on("connection", async (ws, req) => {
+  const cookieHeader = req.headers.cookie || "";
+  const cookieMatch = cookieHeader.match(/user=([^;]+)/);
+  const username = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+  if (!username) {
+    ws.close();
+    return;
+  }
+
+  clients[username] = ws;
+  broadcast({ type: "user_list", users: Object.keys(clients) });
+
+  ws.on("message", async (msg) => {
+    const data = JSON.parse(msg);
+
+    if (data.type === "message") {
+      const { text, to } = data;
+      await db.run("INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)", [username, to, text]);
+
+      const messageObj = { type: "message", from: username, text, to };
+
+      if (to === "all") broadcast(messageObj);
+      else {
+        if (clients[to]) send(clients[to], messageObj);
+        send(ws, messageObj);
+      }
+    }
+  });
+
+  ws.on("close", () => {
+    delete clients[username];
+    broadcast({ type: "user_list", users: Object.keys(clients) });
+  });
+});
+
+function send(ws, msg) {
+  if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
+}
+function broadcast(msg) {
+  for (const u in clients) send(clients[u], msg);
+}
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log("✅ Server running on " + PORT));
