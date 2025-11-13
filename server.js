@@ -1,7 +1,7 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import http from 'http';
-import { WebSocketServer } from 'ws'; // 👈 ИМПОРТ ДЛЯ ИСПРАВЛЕНИЯ ОШИБКИ
+import { WebSocketServer } from 'ws'; // ✅ ИСПРАВЛЕНИЕ: Импорт для WSS
 import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
@@ -12,10 +12,12 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-// Убедитесь, что папка public существует и содержит файлы:
+// Обслуживаем статические файлы из папки public
 app.use(express.static('public'));
 
-const USERS_FILE = 'users.json'; // Путь к файлу с пользователями
+const USERS_FILE = 'users.json'; 
+const PRIVATE_CHATS_FILE = 'private_chats.json';
+const GROUPS_FILE = 'groups.json';
 
 /** Чтение JSON-файла */
 async function readJSONFile(filename) {
@@ -43,10 +45,13 @@ async function writeJSONFile(filename, data) {
 
 // --- WebSocket и HTTP-сервер ---
 
-const server = http.createServer(app); // 👈 СОЗДАЕМ HTTP-СЕРВЕР
+const server = http.createServer(app); // Создаем HTTP-сервер
 
-// === WebSocket-сервер (ИСПРАВЛЕНИЕ ОШИБКИ) ===
-const wss = new WebSocketServer({ server }); // 👈 ИНИЦИАЛИЗИРУЕМ WSS, ПРИВЯЗЫВАЯ К HTTP-СЕРВЕРУ
+// === WebSocket-сервер ===
+const wss = new WebSocketServer({ server }); // ✅ ИНИЦИАЛИЗАЦИЯ WSS (привязка к HTTP-серверу)
+
+// Карта для хранения активных WebSocket-соединений по имени пользователя
+const clients = new Map();
 
 wss.on("connection", async (ws, req) => {
     const cookieHeader = req.headers.cookie || "";
@@ -61,31 +66,54 @@ wss.on("connection", async (ws, req) => {
     }
 
     console.log(`Пользователь ${username} подключился через WebSocket.`);
+    
+    // Сохраняем соединение
+    clients.set(username, ws);
 
-    // Здесь будет логика обработки сообщений и присоединения к чату
-    // ws.on('message', (message) => { ... });
-    // ws.on('close', () => { ... });
+    ws.on('message', (message) => {
+        const data = JSON.parse(message);
+        
+        if (data.type === 'message') {
+            const fullMessage = {
+                type: 'message',
+                sender: username,
+                text: data.text,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Логика рассылки сообщений (пока только общий чат)
+            wss.clients.forEach(client => {
+                if (client.readyState === ws.OPEN) {
+                    client.send(JSON.stringify(fullMessage));
+                }
+            });
+        }
+    });
+
+    ws.on('close', () => {
+        console.log(`Пользователь ${username} отключился.`);
+        clients.delete(username);
+    });
 });
 
 // --- Express-маршруты ---
 
 // GET /login - Показывает страницу входа/регистрации
 app.get('/login', (req, res) => {
+    // Используем path.resolve для надежности
     res.sendFile(path.resolve('public', 'login.html'));
 });
 
 // GET / - Главная страница
 app.get('/', (req, res) => {
-    // Проверяем, авторизован ли пользователь (есть ли куки 'user')
     const username = req.cookies.user;
     if (!username) {
         return res.redirect('/login');
     }
-    // Если авторизован, отдаем основной файл мессенджера
     res.sendFile(path.resolve('public', 'index.html'));
 });
 
-// POST /register - Регистрация нового пользователя
+// POST /register - Регистрация
 app.post('/register', async (req, res) => {
     const { username, password } = req.body;
     const users = await readJSONFile(USERS_FILE);
@@ -98,20 +126,14 @@ app.post('/register', async (req, res) => {
         return res.status(409).json({ success: false, error: 'Пользователь с таким именем уже существует' });
     }
     
-    // ⚠️ В реальном приложении здесь нужно хешировать пароль!
-    const newUser = {
-        id: uuidv4(), 
-        username, 
-        password // Для простоты, сохраняем как есть
-    };
-
+    const newUser = { id: uuidv4(), username, password };
     users.push(newUser);
     await writeJSONFile(USERS_FILE, users);
 
     res.json({ success: true, message: 'Регистрация успешна' });
 });
 
-// POST /login - Вход пользователя
+// POST /login - Вход
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const users = await readJSONFile(USERS_FILE);
@@ -119,11 +141,12 @@ app.post('/login', async (req, res) => {
     const user = users.find(u => u.username === username && u.password === password);
     
     if (user) {
-        // Устанавливаем куки с именем пользователя
+        // Устанавливаем куки
         res.cookie('user', encodeURIComponent(user.username), { 
-            maxAge: 900000, 
+            maxAge: 3600000 * 24 * 7, // 7 дней
             httpOnly: true, 
-            sameSite: 'Lax' 
+            sameSite: 'Lax',
+            secure: process.env.NODE_ENV === 'production' // Рекомендовано для Render (HTTPS)
         });
         res.json({ success: true, user: { id: user.id, username: user.username } });
     } else {
@@ -131,7 +154,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// GET /me - Маршрут для Keep-Alive и получения данных пользователя
+// GET /me - Проверка авторизации и получение данных
 app.get('/me', async (req, res) => {
     const username = req.cookies.user;
     if (username) {
@@ -150,6 +173,6 @@ app.get('/me', async (req, res) => {
 
 const PORT = process.env.PORT || 3000; 
 
-server.listen(PORT, '0.0.0.0', () => { // Используем server.listen
+server.listen(PORT, '0.0.0.0', () => { 
   console.log(`Сервер запущен на порту ${PORT}`);
 });
