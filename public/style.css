@@ -1,82 +1,87 @@
 body {
   margin: 0;
-  font-family: "Segoe UI", sans-serif;
-  background: #2f3136;
-  color: white;
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
 }
 
-.hidden { display: none; }
-
-#auth {
+#login-register {
+  width: 300px;
+  margin: 100px auto;
   text-align: center;
-  margin-top: 100px;
 }
 
-#auth input {
-  display: block;
-  margin: 10px auto;
-  padding: 10px;
-  width: 200px;
-  border-radius: 5px;
-  border: none;
-}
-
-#auth button {
-  background: #5865F2;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  cursor: pointer;
-  border-radius: 5px;
-}
-#auth button:hover { background: #4752C4; }
-
-#chat {
+.app {
   display: flex;
   height: 100vh;
 }
 
-#sidebar {
-  width: 200px;
-  background: #202225;
+.sidebar {
+  width: 250px;
+  background: #ffffff;
+  border-right: 1px solid #ccc;
   padding: 10px;
+  overflow-y: auto;
 }
 
-#users {
-  list-style: none;
-  padding: 0;
-}
-
-#main {
+.chat-window {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-#messages {
+.messages {
   flex: 1;
+  padding: 10px;
   overflow-y: auto;
-  padding: 10px;
 }
 
-#input {
+.messages .message {
+  padding: 5px 10px;
+  margin-bottom: 5px;
+  border-radius: 10px;
+  background: #e1ffc7;
+  max-width: 70%;
+}
+
+.messages .message.self {
+  background: #c7d7ff;
+  align-self: flex-end;
+}
+
+.input {
   display: flex;
-  border-top: 1px solid #40444b;
+  padding: 10px;
+  border-top: 1px solid #ccc;
 }
 
-#input input {
+.input input {
   flex: 1;
   padding: 10px;
-  border: none;
-  outline: none;
-  background: #40444b;
-  color: white;
+  border-radius: 20px;
+  border: 1px solid #ccc;
 }
 
-#input button {
-  background: #5865F2;
-  border: none;
-  color: white;
+.input button {
+  margin-left: 10px;
   padding: 10px 20px;
+  border-radius: 20px;
+  border: none;
+  background: #007bff;
+  color: white;
   cursor: pointer;
+}
+
+/* Mobile version */
+@media (max-width: 600px) {
+  .app {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    order: 2;
+  }
+  .chat-window {
+    width: 100%;
+    order: 1;
+  }
 }

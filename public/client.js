@@ -1,75 +1,58 @@
 const socket = io();
 
-const authDiv = document.getElementById('auth');
-const chatDiv = document.getElementById('chat');
-const authMsg = document.getElementById('authMsg');
+let currentUser = null;
+let currentChat = null;
+let currentChatType = null; // "private" or "group"
 
-const regUser = document.getElementById('regUser');
-const regPass = document.getElementById('regPass');
-const registerBtn = document.getElementById('registerBtn');
+// Login/Register
+document.getElementById('login-btn').onclick = () => loginOrRegister('login');
+document.getElementById('register-btn').onclick = () => loginOrRegister('register');
 
-const logUser = document.getElementById('logUser');
-const logPass = document.getElementById('logPass');
-const loginBtn = document.getElementById('loginBtn');
-
-const msgInput = document.getElementById('msg');
-const sendBtn = document.getElementById('send');
-const messages = document.getElementById('messages');
-const usersList = document.getElementById('users');
-
-let username = null;
-
-// регистрация
-registerBtn.onclick = async () => {
-  const res = await fetch('/register', {
+function loginOrRegister(type) {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  fetch(`/${type}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: regUser.value, password: regPass.value })
+    body: JSON.stringify({ username, password })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.success) {
+      currentUser = data.user;
+      document.getElementById('login-register').style.display = 'none';
+      document.querySelector('.app').style.display = 'flex';
+      document.getElementById('current-user').innerText = currentUser.username;
+      socket.emit('join', currentUser.id);
+    } else {
+      document.getElementById('login-msg').innerText = data.message || 'Login failed';
+    }
   });
-  const data = await res.json();
-  if (data.error) authMsg.textContent = data.error;
-  else authMsg.textContent = '✅ Успешная регистрация! Войдите ниже.';
-};
+}
 
-// вход
-loginBtn.onclick = async () => {
-  const res = await fetch('/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: logUser.value, password: logPass.value })
-  });
-  const data = await res.json();
-  if (data.error) {
-    authMsg.textContent = data.error;
-  } else {
-    username = logUser.value;
-    authDiv.classList.add('hidden');
-    chatDiv.classList.remove('hidden');
-    socket.emit('login', username);
+// Sending messages
+document.getElementById('send-btn').onclick = sendMessage;
+
+function sendMessage() {
+  const text = document.getElementById('message-input').value;
+  if(!text) return;
+  if(currentChatType === 'private') {
+    socket.emit('private_message', { from: currentUser.id, to: currentChat.id, text });
+  } else if(currentChatType === 'group') {
+    socket.emit('group_message', { groupId: currentChat.id, from: currentUser.id, text });
   }
-};
+  addMessage(currentUser.username, text, true);
+  document.getElementById('message-input').value = '';
+}
 
-// чат
-sendBtn.onclick = () => {
-  const text = msgInput.value.trim();
-  if (text) {
-    socket.emit('chatMessage', text);
-    msgInput.value = '';
-  }
-};
+// Display messages
+function addMessage(username, text, self=false) {
+  const msgDiv = document.createElement('div');
+  msgDiv.classList.add('message');
+  if(self) msgDiv.classList.add('self');
+  msgDiv.innerText = username + ': ' + text;
+  document.getElementById('messages').appendChild(msgDiv);
+  msgDiv.scrollIntoView();
+}
 
-socket.on('chatMessage', data => {
-  const div = document.createElement('div');
-  div.innerHTML = `<b>${data.user}:</b> ${data.text}`;
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
-});
-
-socket.on('onlineUsers', list => {
-  usersList.innerHTML = '';
-  list.forEach(u => {
-    const li = document.createElement('li');
-    li.textContent = u;
-    usersList.appendChild(li);
-  });
-});
+// TODO: Implement chat selection, group creation, loading existing messages
