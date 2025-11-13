@@ -21,21 +21,25 @@
   </div>
 
   <script>
-    const username = document.getElementById('username');
-    const password = document.getElementById('password');
-    const passwordConfirm = document.getElementById('passwordConfirm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const passwordConfirmInput = document.getElementById('passwordConfirm');
     const msg = document.getElementById('msg');
 
     async function register() {
-      if (password.value !== passwordConfirm.value) {
+      const username = usernameInput.value;
+      const password = passwordInput.value;
+      const passwordConfirm = passwordConfirmInput.value;
+
+      if (password !== passwordConfirm) {
         msg.textContent = "❌ Пароли не совпадают!";
         return;
       }
-      if (username.value.length < 3) {
+      if (username.length < 3) {
           msg.textContent = "❌ Имя пользователя должно быть не менее 3 символов.";
           return;
       }
-      if (password.value.length < 6) {
+      if (password.length < 6) {
           msg.textContent = "❌ Пароль должен быть не менее 6 символов.";
           return;
       }
@@ -43,23 +47,27 @@
       const res = await fetch("/register", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ username: username.value, password: password.value })
+        body: JSON.stringify({ username, password })
       });
       const j = await res.json();
       msg.textContent = j.error ? `❌ ${j.error}` : "✅ Регистрация успешна! Теперь вы можете войти.";
     }
 
     async function login() {
+      const username = usernameInput.value;
+      const password = passwordInput.value;
+
       const res = await fetch("/login", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ username: username.value, password: password.value })
+        body: JSON.stringify({ username, password })
       });
       const j = await res.json();
       if (j.success) {
+        // Успешный вход! Перенаправляем на главную страницу
         location.href = "/";
       } else {
-        msg.textContent = j.error ? `❌ ${j.error}` : "❌ Ошибка входа. Проверьте имя/пароль.";
+        msg.textContent = j.error ? `❌ ${j.error}` : "❌ Ошибка входа. Проверьте данные.";
       }
     }
   </script>
