@@ -1,90 +1,85 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
-const fs = require('fs-extra');
-const bodyParser = require('body-parser');
-
+const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
+const { Server } = require('socket.io');
 const io = new Server(server);
 
 app.use(express.static('public'));
-app.use(bodyParser.json());
+app.use(express.json());
 
-const USERS_FILE = 'users.json';
-const PRIVATE_CHATS_FILE = 'private_chats.json';
-const GROUPS_FILE = 'groups.json';
+let users = [];
+let privateChats = [];
+let groups = [];
+let onlineUsers = [];
 
-// Utility functions
-const readJSON = (file) => fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
-const writeJSON = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2));
+// Загружаем данные
+if(fs.existsSync('public/users.json')) users = JSON.parse(fs.readFileSync('public/users.json'));
+if(fs.existsSync('public/private_chats.json')) privateChats = JSON.parse(fs.readFileSync('public/private_chats.json'));
+if(fs.existsSync('public/groups.json')) groups = JSON.parse(fs.readFileSync('public/groups.json'));
 
-// Login endpoint
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  const users = readJSON(USERS_FILE);
-  const user = users.find(u => u.username === username && u.password === password);
-  if(user) res.json({ success: true, user });
-  else res.json({ success: false });
-});
-
-// Register endpoint
+// REST API для регистрации
 app.post('/register', (req, res) => {
-  const { username, password } = req.body;
-  const users = readJSON(USERS_FILE);
-  if(users.find(u => u.username === username)) return res.json({ success: false, message: 'Username exists' });
-  const newUser = { id: Date.now(), username, password };
-  users.push(newUser);
-  writeJSON(USERS_FILE, users);
-  res.json({ success: true, user: newUser });
+    const { username, password } = req.body;
+    if(users.find(u => u.username === username)) return res.json({ success: false, message: 'Пользователь уже существует' });
+    const newUser = { id: Date.now(), username, password };
+    users.push(newUser);
+    fs.writeFileSync('public/users.json', JSON.stringify(users));
+    res.json({ success: true, user: newUser });
 });
 
-// Socket.io real-time chat
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+// REST API для входа
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    const user = users.find(u => u.username === username && u.password === password);
+    if(!user) return res.json({ success: false, message: 'Неверные данные' });
+    res.json({ success: true, user });
+});
 
-  socket.on('join', (userId) => {
-    socket.userId = userId;
-    socket.join(`user_${userId}`);
-  });
+// Socket.io
+io.on('connection', socket => {
+    console.log('User connected:', socket.id);
 
-  socket.on('private_message', ({ from, to, text }) => {
-    const chats = readJSON(PRIVATE_CHATS_FILE);
-    let chat = chats.find(c => c.users.includes(from) && c.users.includes(to));
-    if(!chat) {
-      chat = { id: Date.now(), users: [from, to], messages: [] };
-      chats.push(chat);
-    }
-    const message = { sender: from, text, timestamp: Date.now() };
-    chat.messages.push(message);
-    writeJSON(PRIVATE_CHATS_FILE, chats);
-    io.to(`user_${from}`).to(`user_${to}`).emit('private_message', message);
-  });
-
-  socket.on('group_message', ({ groupId, from, text }) => {
-    const groups = readJSON(GROUPS_FILE);
-    const group = groups.find(g => g.id === groupId);
-    if(!group) return;
-    const message = { sender: from, text, timestamp: Date.now() };
-    group.messages.push(message);
-    writeJSON(GROUPS_FILE, groups);
-    group.members.forEach(memberId => {
-      io.to(`user_${memberId}`).emit('group_message', { groupId, message });
+    socket.on('join', userId => {
+        socket.userId = userId;
+        if(!onlineUsers.includes(userId)) onlineUsers.push(userId);
+        socket.join(`user_${userId}`);
+        io.emit('online_users', onlineUsers);
     });
-  });
 
-  socket.on('create_group', ({ name, members }) => {
-    const groups = readJSON(GROUPS_FILE);
-    const newGroup = { id: Date.now(), name, members, messages: [] };
-    groups.push(newGroup);
-    writeJSON(GROUPS_FILE, groups);
-    members.forEach(memberId => io.to(`user_${memberId}`).emit('group_created', newGroup));
-  });
+    socket.on('private_message', data => {
+        const chat = privateChats.find(c => c.users.sort().join(',') === data.users.sort().join(','));
+        if(chat) {
+            chat.messages.push({ from: data.from, text: data.text, time: Date.now() });
+        } else {
+            privateChats.push({ users: data.users, messages: [{ from: data.from, text: data.text, time: Date.now() }] });
+        }
+        fs.writeFileSync('public/private_chats.json', JSON.stringify(privateChats));
+        data.users.forEach(id => io.to(`user_${id}`).emit('private_message', data));
+    });
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
+    socket.on('create_group', data => {
+        const newGroup = { id: Date.now(), name: data.name, members: data.members, messages: [] };
+        groups.push(newGroup);
+        fs.writeFileSync('public/groups.json', JSON.stringify(groups));
+        data.members.forEach(id => io.to(`user_${id}`).emit('new_group', newGroup));
+    });
+
+    socket.on('group_message', data => {
+        const group = groups.find(g => g.id === data.groupId);
+        if(group) {
+            group.messages.push({ from: data.from, text: data.text, time: Date.now() });
+            fs.writeFileSync('public/groups.json', JSON.stringify(groups));
+            group.members.forEach(id => io.to(`user_${id}`).emit('group_message', data));
+        }
+    });
+
+    socket.on('disconnect', () => {
+        onlineUsers = onlineUsers.filter(id => id !== socket.userId);
+        io.emit('online_users', onlineUsers);
+        console.log('User disconnected:', socket.id);
+    });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(3000, () => console.log('Server running on http://localhost:3000'));
