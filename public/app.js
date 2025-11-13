@@ -16,10 +16,17 @@ async function init() {
   const input = document.getElementById("msgInput");
   const sendBtn = document.getElementById("sendBtn");
   const header = document.getElementById("chatHeader");
+  const allBtn = document.getElementById("allChatBtn");
+
   let currentChat = "all";
 
   sendBtn.onclick = sendMessage;
   input.onkeydown = (e) => e.key === "Enter" && sendMessage();
+  allBtn.onclick = () => {
+    currentChat = "all";
+    header.textContent = "Общий чат";
+    loadMessages();
+  };
 
   async function loadMessages() {
     const res = await fetch(`/messages?user=${user}&withUser=${currentChat}`);

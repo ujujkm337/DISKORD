@@ -4,7 +4,6 @@ import { WebSocketServer } from "ws";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import cookieParser from "cookie-parser";
-import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -17,6 +16,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static("public"));
 
+// === Инициализация базы данных ===
 const db = await open({
   filename: path.join(__dirname, "db.sqlite"),
   driver: sqlite3.Database
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 `);
 
-let clients = {}; // {userId: ws}
+let clients = {}; // {username: ws}
 
 // === Аутентификация ===
 app.post("/register", async (req, res) => {
@@ -68,6 +68,7 @@ app.get("/me", (req, res) => {
   else res.status(401).end();
 });
 
+// === История сообщений ===
 app.get("/messages", async (req, res) => {
   const { user, withUser } = req.query;
   if (!user) return res.status(400).end();
@@ -86,11 +87,12 @@ app.get("/messages", async (req, res) => {
   res.json(rows);
 });
 
-// === WebSocket ===
+// === WebSocket-сервер ===
 wss.on("connection", async (ws, req) => {
   const cookieHeader = req.headers.cookie || "";
-  const cookieMatch = cookieHeader.match(/user=([^;]+)/);
-  const username = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+  const match = cookieHeader.match(/user=([^;]+)/);
+  const username = match ? decodeURIComponent(match[1]) : null;
+
   if (!username) {
     ws.close();
     return;
@@ -104,10 +106,11 @@ wss.on("connection", async (ws, req) => {
 
     if (data.type === "message") {
       const { text, to } = data;
+
+      // сохраняем в БД
       await db.run("INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)", [username, to, text]);
 
       const messageObj = { type: "message", from: username, text, to };
-
       if (to === "all") broadcast(messageObj);
       else {
         if (clients[to]) send(clients[to], messageObj);
@@ -130,4 +133,4 @@ function broadcast(msg) {
 }
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("✅ Server running on " + PORT));
+server.listen(PORT, () => console.log("✅ Server running on port " + PORT));
